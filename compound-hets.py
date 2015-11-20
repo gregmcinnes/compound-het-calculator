@@ -76,12 +76,13 @@ UNCERTAIN_IDS_UNAFFECTED = 44
 #   output: output file prefix
 class CompoundHets(object):
     def __init__(self, input, ped=None, thousand_freq=None, exac_freq=None, esp_freq=None, complete_freq=None,
-                 consequence=None, output=None):
+                 consequence=None, output=None, transcript=None):
         self.thousand_cutoff = thousand_freq
         self.exac_cutoff = exac_freq
         self.esp_cutoff = esp_freq
         self.complete_cutoff = complete_freq
         self.consequence = consequence
+        self.transcript = transcript
         genes = self.read_input_file(input)
         samples, positions = self.check_genes(genes)
         self.print_positions(positions, output)
@@ -180,8 +181,9 @@ class CompoundHets(object):
         from_father = fields[FROM_FATHER_IDS_AFFECTED]
         variant = Variant(chr, pos, info, from_mother, from_father)
         if variant.pass_1kg(self.thousand_cutoff) and variant.pass_complete(self.complete_cutoff) and \
-            variant.pass_esp(self.esp_cutoff) and variant.pass_exac(self.exac_cutoff) and \
-            variant.pass_consequence(self.consequence) and variant.has_ids():
+                variant.pass_esp(self.esp_cutoff) and variant.pass_exac(self.exac_cutoff) and \
+                variant.pass_consequence(self.consequence) and variant.has_ids() and \
+                variant.match_transcript(self.transcript):
             return variant
         return None
 
@@ -209,7 +211,7 @@ class Variant(object):
         self.esp_freq = self.get_esp_freq(fields)
         self.exac_freq = self.get_exac_freq(fields)
         self.complete_freq = self.get_complete_freq(fields)
-        self.gene, self.consequence = self.get_gene_and_consequence(fields)
+        self.gene, self.consequence, self.transcript = self.get_gene_consequence_and_transcript(fields)
 
     # Print the variant to the console.  Debugging method.
     def print_variant(self):
@@ -237,19 +239,21 @@ class Variant(object):
                                           ",".join(self.from_father))
         return string
 
-    # Get the gene symbol and consequence from the info field
+    # Get the gene symbol, consequence, and transcript from the info field
     # Input:
     #   fields: A list of strings from the VCF info
     # Return:
     #   gene: gene symbol
     #   consequence: variant consequence
-    def get_gene_and_consequence(self, fields):
+    #   transcript: transcript ID
+    def get_gene_consequence_and_transcript(self, fields):
         for f in fields:
             if f.startswith("CSQ"):
                 info = f.split("|")
                 consequence = info[1].split('&')
+                transcript = info[6]
                 gene = info[3]
-                return gene, consequence
+                return gene, consequence, transcript
         if self.debug:
             print "Gene and consequence could not be identified!"
 
@@ -353,12 +357,22 @@ class Variant(object):
         return False
 
     # Check if the consequence matches a provided consequence
-    # Input;
+    # Input:
     #   consequence: desired consequence
     # Return:
     #   True or False based on meeting criteria
     def pass_consequence(self, consequence):
         if consequence is None or consequence in self.consequence:
+            return True
+        return False
+
+    # Check if the transcript matches a provided transcript
+    # Input:
+    #   transcript: desired transcript
+    # Return:
+    #   True or False based on meeting criteria
+    def match_transcript(self, transcript):
+        if transcript is None or transcript == self.transcript:
             return True
         return False
 
@@ -397,6 +411,7 @@ def parse_command_line():
     parser.add_argument("-i", "--input",
                                 help="Input file.  VCF-like file containing information about variant inheritance.")
     parser.add_argument("-p", "--ped", default=None, help="Ped file.")
+    parser.add_argument("-t", "--transcript", default=None, help="Transcript to match")
     parser.add_argument("--thousand_freq", help="1000 Genomes maximum frequency")
     parser.add_argument("--exac_freq", help="ExAC maximum frequency")
     parser.add_argument("--esp_freq", help="esp maximum frequency")
@@ -417,4 +432,4 @@ def parse_command_line():
 if __name__ == "__main__":
     options = parse_command_line()
     CompoundHets(options.input, options.ped, options.thousand_freq, options.exac_freq, options.esp_freq,
-                 options.complete_freq, options.consequence, options.output)
+                 options.complete_freq, options.consequence, options.output, options.transcript)

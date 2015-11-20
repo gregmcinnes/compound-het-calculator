@@ -21,6 +21,8 @@ optional arguments:
                         Input file. VCF-like file containing information about
                         variant inheritance.
   -p PED, --ped PED     Ped file.
+  -t TRANSCRIPT, --transcript TRANSCRIPT
+                        Transcript to match
   --thousand_freq THOUSAND_FREQ
                         1000 Genomes maximum frequency
   --exac_freq EXAC_FREQ
