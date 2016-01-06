@@ -207,15 +207,14 @@ class CompoundHets(object):
 # Parse the command line
 def parse_command_line():
     parser = argparse.ArgumentParser(
-        description = 'This script identifies compound heterozygous variants from a vcf-like file.')
-    parser.add_argument("-i", "--input",
-                                help="Input file.  VCF-like file containing information about variant inheritance.")
-    parser.add_argument("-p", "--ped", help="Ped file.")
-    parser.add_argument("-t", "--transcript", default=None, help="Transcript to match")
-    parser.add_argument("--frequency", help="Maximum allele frequency to allow.")
-    parser.add_argument("--consequence", help="Variant consequence")
-    parser.add_argument("-o", "--output", help="File output prefix.  Not required, but recommended to prevent "
-                                               "overwriting of old files")
+        description = 'This script identifies and reports compound heterozygous variants.')
+    parser.add_argument("-i", "--input", help="An input file listing genomic positions and the patients that have variants at each positions.  Each row represents a single genomic position, with the chromosome, locus, reference, and alternate alleles listed (just like a VCF).  Also like a VCF, each row must have an INFO column with information about which gene the position is in, allele frequency in popular genomics resources, and predicted allele effect.")
+    parser.add_argument("-p", "--ped", help="A PED file detailing family and individual identification numbers, paternal IDs, sex, and phenotype for each patient.  For phenotype identification, 1 is considered unaffected, 2 is affected by disease.")
+    parser.add_argument("-t", "--transcript", default=None, help="Optional argument.  The name of the gene transcript to match.  Only variants from the specified transcript will be returned.  Only one transcript allowed.  If not specified all transcripts will be considered.")
+    parser.add_argument("--frequency", help="Optional argument.  The maximum allele frequency cutoff allowed.  1000 Genomes, ExAC, and Complete Genomics allele frequencies are considered.  If any of the three resources reports an allele frequency greater than the set cutoff the variant will not be considered. If not specified all variants will all allele frequencies will be considered.")
+    parser.add_argument("--consequence", help="Optional argument. The desired variant consequence (e.g. missense_variant, nonsense_variant, etc).  Only variants with the specified consequence will be considered.  Multiple consequences may be specified.  If not specified all variants will be considered.")
+    parser.add_argument("-o", "--output", help="The output directory.  The specified output directory must not already exist.  The created directory will contain all relevant output files.")
+    parser.add_argument("--lookback", default=5, help="Number of genes to save in local memory.  Default=5")
     parser.add_argument("-d", "--debug", action='store_true', default=False,
                                 help="Output debugging messages.  May be very verbose.")
     options = parser.parse_args()
@@ -229,10 +228,17 @@ def parse_command_line():
         parser.print_help()
         exit(0)
 
+    if options.output is None:
+        print("Output directory required.  --output \n\n")
+        parser.print_help()
+        exit(0)
+
+
+
     return options
 
 # Main
 if __name__ == "__main__":
     options = parse_command_line()
     CompoundHets(options.input, options.ped, options.frequency,
-                 options.consequence, options.output, options.transcript, options.debug)
+                 options.consequence, options.output, options.transcript, options.debug, options.lookback)
