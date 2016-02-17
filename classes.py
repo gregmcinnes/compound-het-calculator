@@ -300,8 +300,11 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_consequence(self, consequence):
-        if consequence is None or consequence in self.consequence:
+        if consequence is None:
             return True
+        for c in consequence:
+            if c in self.consequence:
+                return True
         return False
 
     # Check if the transcript matches a provided transcript
@@ -338,7 +341,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def has_maternal(self, id):
-        if id in [self.from_mother_affected, self.from_mother_unaffected]:
+        if id in self.from_mother_affected + self.from_mother_unaffected:
             return True
         return False
 

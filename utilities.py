@@ -103,6 +103,7 @@ class Utilities(object):
     # Return:
     #   variant: Variant object. None if it does not meet the input criteria
     def parse_line(self, line):
+        #print line
         line = line.rstrip()
         fields = line.split("\t")
         chr = fields[CHROMOSOME]

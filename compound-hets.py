@@ -26,6 +26,7 @@ import os
 from collections import defaultdict
 from utilities import Utilities
 from classes import CompoundHet
+import shutil
 
 
 # Class to parse file and identify compound hets for each sample.
@@ -41,11 +42,12 @@ from classes import CompoundHet
 #   gene_lookback: How many genes to save in memory.  Default is 5
 class CompoundHets(object):
     def __init__(self, input, ped, frequency_cutoff=None, consequence=None, output=None, transcript=None, debug=False,
-                 gene_lookback=5):
+                 gene_lookback=5, force=False):
         self.frequency_cutoff = frequency_cutoff
         self.consequence = consequence
         self.transcript = transcript
         self.output = output
+        self.force = force
         self.aggregate_file = os.path.join(output, 'compound_hets.aggregate.tsv')
         self.debug = debug
         self.Utils = Utilities(self.frequency_cutoff, self.consequence, self.transcript, self.debug)
@@ -53,6 +55,7 @@ class CompoundHets(object):
         self.lookback = gene_lookback
         self.setup_output(output, self.families)
         self.process_file(input)
+
 
     # Print each compound het pair for each sample to a sample file
     # Input:
@@ -151,11 +154,12 @@ class CompoundHets(object):
         hets = []
         identified_pairs = []
         for v1 in gene:
-            for patient_id in [v1.from_father_affected, v1.from_father_unaffected]:
-                if not self.families.members[patient_id].has_disease():
+            for patient_id in v1.from_father_affected + v1.from_father_unaffected:
+                family_id = self.Utils.patient_id_to_family(patient_id)
+                if not self.families[family_id].members[patient_id].has_disease():
                     continue
                 for v2 in gene:
-                    if v1 == v2:
+                    if v1.pos == v2.pos:
                         continue
                     if v2.has_maternal(patient_id):
                         key = "-".join(sorted([v1.pos, v2.pos, self.Utils.patient_id_to_family(patient_id)]))
@@ -178,9 +182,16 @@ class CompoundHets(object):
     #   output: the output directory
     #   families: A dictionary of Family objects.  Family IDs are the keys of the dictionary.
     def setup_output(self, output, families):
-        if os.path.exists(output):
+        if os.path.exists(output) and not self.force:
             print("Output folder found!  Please choose a different output path.")
             exit(0)
+        elif os.path.exists(output) and self.force:
+            print("Existing output folder being moved to %s" % output + ".old")
+            if os.path.exists(output + ".old"):
+                print("Removing existing old output: %s" % output + ".old")
+                #os.remove(output + ".old")
+                shutil.rmtree(output + ".old")
+            os.rename(output, output + ".old")
         os.mkdir(output)
 
         file = open(self.aggregate_file,'w')
@@ -212,9 +223,10 @@ def parse_command_line():
     parser.add_argument("-p", "--ped", help="A PED file detailing family and individual identification numbers, paternal IDs, sex, and phenotype for each patient.  For phenotype identification, 1 is considered unaffected, 2 is affected by disease.")
     parser.add_argument("-t", "--transcript", default=None, help="Optional argument.  The name of the gene transcript to match.  Only variants from the specified transcript will be returned.  Only one transcript allowed.  If not specified all transcripts will be considered.")
     parser.add_argument("--frequency", help="Optional argument.  The maximum allele frequency cutoff allowed.  1000 Genomes, ExAC, and Complete Genomics allele frequencies are considered.  If any of the three resources reports an allele frequency greater than the set cutoff the variant will not be considered. If not specified all variants will all allele frequencies will be considered.")
-    parser.add_argument("--consequence", help="Optional argument. The desired variant consequence (e.g. missense_variant, nonsense_variant, etc).  Only variants with the specified consequence will be considered.  Multiple consequences may be specified.  If not specified all variants will be considered.")
+    parser.add_argument("--consequence", nargs='*', help="Optional argument. The desired variant consequence (e.g. missense_variant, nonsense_variant, etc).  Only variants with the specified consequence will be considered.  Multiple consequences may be specified.  If not specified all variants will be considered.")
     parser.add_argument("-o", "--output", help="The output directory.  The specified output directory must not already exist.  The created directory will contain all relevant output files.")
     parser.add_argument("--lookback", default=5, help="Number of genes to save in local memory.  Default=5")
+    parser.add_argument("--force", action='store_true', help="Overwrite existing output directory")
     parser.add_argument("-d", "--debug", action='store_true', default=False,
                                 help="Output debugging messages.  May be very verbose.")
     options = parser.parse_args()
@@ -240,5 +252,6 @@ def parse_command_line():
 # Main
 if __name__ == "__main__":
     options = parse_command_line()
+    print(options.consequence)
     CompoundHets(options.input, options.ped, options.frequency,
-                 options.consequence, options.output, options.transcript, options.debug, options.lookback)
+                 options.consequence, options.output, options.transcript, options.debug, options.lookback, options.force)
