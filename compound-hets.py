@@ -41,14 +41,17 @@ import shutil
 #   output: output file prefix
 #   gene_lookback: How many genes to save in memory.  Default is 5
 class CompoundHets(object):
-    def __init__(self, input, ped, frequency_cutoff=None, consequence=None, output=None, transcript=None, debug=False,
+    def __init__(self, input, ped, frequency_cutoff=None, consequence=None, output=None, prefix=None, transcript=False, debug=False,
                  gene_lookback=5, force=False):
         self.frequency_cutoff = frequency_cutoff
         self.consequence = consequence
         self.transcript = transcript
         self.output = output
+        self.prefix = prefix
         self.force = force
         self.aggregate_file = os.path.join(output, 'compound_hets.aggregate.tsv')
+        if self.prefix:
+            self.aggregate_file = os.path.join(output, self.prefix + '.compound_hets.aggregate.tsv')
         self.debug = debug
         self.Utils = Utilities(self.frequency_cutoff, self.consequence, self.transcript, self.debug)
         self.families = self.Utils.read_ped_file(ped)
@@ -66,6 +69,8 @@ class CompoundHets(object):
             return
         for s in samples:
             filename = "%s.compound_het_pairs.txt" % s
+            if self.prefix:
+                filename = self.prefix + "." + filename
             if output:
                 filename = "%s.%s.compound_het_pairs.txt" % (output, s)
             f = open(filename, 'w')
@@ -165,8 +170,13 @@ class CompoundHets(object):
                         key = "-".join(sorted([v1.pos, v2.pos, self.Utils.patient_id_to_family(patient_id)]))
                         het = CompoundHet(patient_id, v2, v1, self.families)
                         if not key in identified_pairs:
-                            hets.append(het)
-                            identified_pairs.append(key)
+                            if self.transcript:
+                                if v1.transcript == v2.transcript:
+                                    hets.append(het)
+                                    identified_pairs.append(key)
+                            else:
+                                hets.append(het)
+                                identified_pairs.append(key)
         return hets
 
     # Print out the hets - debugging function
@@ -182,17 +192,19 @@ class CompoundHets(object):
     #   output: the output directory
     #   families: A dictionary of Family objects.  Family IDs are the keys of the dictionary.
     def setup_output(self, output, families):
-        if os.path.exists(output) and not self.force:
-            print("Output folder found!  Please choose a different output path.")
-            exit(0)
-        elif os.path.exists(output) and self.force:
-            print("Existing output folder being moved to %s" % output + ".old")
-            if os.path.exists(output + ".old"):
-                print("Removing existing old output: %s" % output + ".old")
-                #os.remove(output + ".old")
-                shutil.rmtree(output + ".old")
-            os.rename(output, output + ".old")
-        os.mkdir(output)
+        # Due to popular demand this has been removed.
+        #if os.path.exists(output) and not self.force:
+        #    print("Output folder found!  Please choose a different output path.")
+        #    exit(0)
+        #elif os.path.exists(output) and self.force:
+        #    print("Existing output folder being moved to %s" % output + ".old")
+        #    if os.path.exists(output + ".old"):
+        #        print("Removing existing old output: %s" % output + ".old")
+        #        #os.remove(output + ".old")
+        #        shutil.rmtree(output + ".old")
+        #    os.rename(output, output + ".old")
+        if not os.path.exists(output):
+            os.mkdir(output)
 
         file = open(self.aggregate_file,'w')
         print('Gene	Maternal_VarID	Maternal_Var_CSQ	Paternal_VarID	Paternal_Var_CSQ	'
@@ -205,7 +217,10 @@ class CompoundHets(object):
         file.close()
 
         for f in families:
-            family_file = os.path.join(output, f + '.family_file.tsv')
+            filename = f + '.family_file.tsv'
+            if self.prefix:
+                filename = self.prefix + "." + filename
+            family_file = os.path.join(output, filename)
             file = open(family_file,'w')
             print('Gene	Maternal_Var_CSQ-Paternal_Var_CSQ	family	child_id	is_aff	Inheritance_Variant1	Chr	'
                   'Position	Ref	Alt	VariantID	esp6500siv2_all	ExAC_ALL	ThousandGenomes_2014oct_all	cg46	CADD'
@@ -221,10 +236,11 @@ def parse_command_line():
         description = 'This script identifies and reports compound heterozygous variants.')
     parser.add_argument("-i", "--input", help="An input file listing genomic positions and the patients that have variants at each positions.  Each row represents a single genomic position, with the chromosome, locus, reference, and alternate alleles listed (just like a VCF).  Also like a VCF, each row must have an INFO column with information about which gene the position is in, allele frequency in popular genomics resources, and predicted allele effect.")
     parser.add_argument("-p", "--ped", help="A PED file detailing family and individual identification numbers, paternal IDs, sex, and phenotype for each patient.  For phenotype identification, 1 is considered unaffected, 2 is affected by disease.")
-    parser.add_argument("-t", "--transcript", default=None, help="Optional argument.  The name of the gene transcript to match.  Only variants from the specified transcript will be returned.  Only one transcript allowed.  If not specified all transcripts will be considered.")
+    parser.add_argument("-t", "--transcript", action='store_true', default=False, help="Optional argument.  If set, only variants occuring within the same transcript will be output.")
     parser.add_argument("--frequency", help="Optional argument.  The maximum allele frequency cutoff allowed.  1000 Genomes, ExAC, and Complete Genomics allele frequencies are considered.  If any of the three resources reports an allele frequency greater than the set cutoff the variant will not be considered. If not specified all variants will all allele frequencies will be considered.")
     parser.add_argument("--consequence", nargs='*', help="Optional argument. The desired variant consequence (e.g. missense_variant, nonsense_variant, etc).  Only variants with the specified consequence will be considered.  Multiple consequences may be specified.  If not specified all variants will be considered.")
-    parser.add_argument("-o", "--output", help="The output directory.  The specified output directory must not already exist.  The created directory will contain all relevant output files.")
+    parser.add_argument("-o", "--output", help="The output directory.")
+    parser.add_argument("--prefix", help="Prefix for all output files.  By default no prefix is set.")
     parser.add_argument("--lookback", default=5, help="Number of genes to save in local memory.  Default=5")
     parser.add_argument("--force", action='store_true', help="Overwrite existing output directory")
     parser.add_argument("-d", "--debug", action='store_true', default=False,
@@ -252,6 +268,6 @@ def parse_command_line():
 # Main
 if __name__ == "__main__":
     options = parse_command_line()
-    print(options.consequence)
     CompoundHets(options.input, options.ped, options.frequency,
-                 options.consequence, options.output, options.transcript, options.debug, options.lookback, options.force)
+                 options.consequence, options.output, options.prefix, options.transcript, options.debug,
+                 options.lookback, options.force)

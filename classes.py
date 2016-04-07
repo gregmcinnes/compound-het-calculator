@@ -92,6 +92,7 @@ class Variant(object):
                 consequence = info[1].split('&')
                 transcript = info[6]
                 gene = info[3]
+                #print(transcript)
                 return gene, consequence, transcript
         if self.debug:
             print("Gene and consequence could not be identified!")
@@ -237,8 +238,8 @@ class Variant(object):
     #   CADD score
     def meets_requirements(self, frequency_cutoff, consequence, transcript):
         if self.pass_allele_frequency(frequency_cutoff) and \
-                self.pass_consequence(consequence) and self.has_ids() and \
-                self.match_transcript(transcript):
+                self.pass_consequence(consequence) and self.has_ids():
+                #and self.match_transcript(transcript):
             return True
         return False
 
@@ -260,7 +261,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_1kg(self, cutoff):
-        if cutoff is None or self.k1g_freq < cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.k1g_freq > cutoff and self.k1g_freq != '.':
             return True
         return False
 
@@ -270,7 +271,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_esp(self, cutoff):
-        if cutoff is None or self.esp_freq < cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.esp_freq > cutoff and self.k1g_freq != '.':
             return True
         return False
 
@@ -280,7 +281,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_exac(self, cutoff):
-        if cutoff is None or self.exac_freq < cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.exac_freq > cutoff and self.k1g_freq != '.':
             return True
         return False
 
@@ -290,7 +291,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_complete(self, cutoff):
-        if cutoff is None or self.complete_freq < cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.complete_freq > cutoff and self.k1g_freq != '.':
             return True
         return False
 
