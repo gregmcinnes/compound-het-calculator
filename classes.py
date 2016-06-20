@@ -261,7 +261,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_1kg(self, cutoff):
-        if cutoff is None or self.k1g_freq > cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.k1g_freq < cutoff and self.k1g_freq != '.':
             return True
         return False
 
@@ -271,7 +271,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_esp(self, cutoff):
-        if cutoff is None or self.esp_freq > cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.esp_freq < cutoff and self.k1g_freq != '.':
             return True
         return False
 
@@ -281,7 +281,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_exac(self, cutoff):
-        if cutoff is None or self.exac_freq > cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.exac_freq < cutoff and self.k1g_freq != '.':
             return True
         return False
 
@@ -291,7 +291,7 @@ class Variant(object):
     # Return:
     #   True or False based on meeting criteria
     def pass_complete(self, cutoff):
-        if cutoff is None or self.complete_freq > cutoff and self.k1g_freq != '.':
+        if cutoff is None or self.complete_freq < cutoff and self.k1g_freq != '.':
             return True
         return False
 
