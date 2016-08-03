@@ -185,7 +185,7 @@ class CompoundHets(object):
     def print_hets(self, hets):
         for h in hets:
             h.print_aggregate(self.aggregate_file)
-            h.print_family(self.output)
+            h.print_family(self.output, self.prefix)
 
     # Create output folder and initialize all output files with headers
     # input:

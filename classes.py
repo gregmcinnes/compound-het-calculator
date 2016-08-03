@@ -303,8 +303,8 @@ class Variant(object):
     def pass_consequence(self, consequence):
         if consequence is None:
             return True
-        for c in consequence:
-            if c in self.consequence:
+        for c in self.consequence:
+            if c in consequence:
                 return True
         return False
 
@@ -863,7 +863,7 @@ class CompoundHet(object):
             family.reset_variant_counts()
 
     # Print the compound het info for individual families
-    def print_family(self, output):
+    def print_family(self, output, prefix=None):
         paternal_variant = self.paternal
         maternal_variant = self.maternal
 
@@ -879,7 +879,11 @@ class CompoundHet(object):
         family = self.families[family_id]
         family.initialize_variants(paternal_variant, maternal_variant)
 
-        file = open(output + '/' + family_id + '.family_file.tsv', 'a')
+
+        file_name = family_id + '.family_file.tsv'
+        if prefix:
+            file_name = prefix + "." + file_name
+        file = open(output + '/' + file_name, 'a')
         for m in family.member_statuses:
             if family.member_statuses[m] == 'CARRIER':
                 print("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % \
