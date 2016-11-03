@@ -409,6 +409,11 @@ class Patient(object):
             return True
         return False
 
+    def is_male(self):
+        if self.sex == 1:
+            return True
+        return False
+
 # Family class
 # Store information about each family
 # Class can be loaded with 2 variants in order to determine which members of the family are carriers of the compound het
@@ -445,6 +450,20 @@ class Family(object):
     def get_member(self, id):
         return self.members[id]
 
+    # Get the mother
+    def get_mother(self):
+        for m in self.members:
+            if not self.members[m].is_child() and not self.members[m].is_male():
+                return m
+        return None
+
+    # Get the father
+    def get_mother(self):
+        for m in self.members:
+            if not self.members[m].is_child() and self.members[m].is_male():
+                return m
+        return None
+
     # Print out information about the family - debugging function
     def print_family(self):
         print("FAMILY %s" % self.family_id)
@@ -464,7 +483,7 @@ class Family(object):
     def affected_count(self):
         count = 0
         for m in self.members:
-            if self.members[m].has_disease():
+            if self.members[m].has_disease() and self.members[m].is_child():
                 count += 1
         self.affected_family_count = count
         return count
@@ -473,7 +492,7 @@ class Family(object):
     def unaffected_count(self):
         count = 0
         for m in self.members:
-            if not self.members[m].has_disease():
+            if not self.members[m].has_disease() and self.members[m].is_child():
                 count += 1
         self.unaffected_family_count = count
         return count
@@ -510,7 +529,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if patient.has_disease() and self.member_statuses[m] == 'MISSING':
+            if patient.has_disease() and self.member_statuses[m] == 'MISSING' and patient.is_child():
                 count += 1
         self.affected_missing_count = count
         return count
@@ -522,7 +541,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if not patient.has_disease() and self.member_statuses[m] == 'MISSING':
+            if not patient.has_disease() and self.member_statuses[m] == 'MISSING' and patient.is_child():
                 count += 1
         self.unaffected_missing_count = count
         return count
@@ -534,7 +553,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if patient.has_disease() and self.member_statuses[m] == 'UNCERTAIN':
+            if patient.has_disease() and self.member_statuses[m] == 'UNCERTAIN' and patient.is_child():
                 count += 1
         self.affected_uncertain_count = count
         return count
@@ -546,7 +565,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if not patient.has_disease() and self.member_statuses[m] == 'UNCERTAIN':
+            if not patient.has_disease() and self.member_statuses[m] == 'UNCERTAIN' and patient.is_child():
                 count += 1
         self.unaffected_uncertain_count = count
         return count
@@ -558,7 +577,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if patient.has_disease() and self.member_statuses[m] == 'CARRIER':
+            if patient.has_disease() and self.member_statuses[m] == 'CARRIER' and patient.is_child():
                 count += 1
         self.affected_carriers_count = count
         return count
@@ -570,7 +589,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if not patient.has_disease() and self.member_statuses[m] == 'CARRIER':
+            if not patient.has_disease() and self.member_statuses[m] == 'CARRIER' and patient.is_child():
                 count += 1
         self.unaffected_carriers_count = count
         return count
@@ -582,7 +601,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if patient.has_disease() and self.member_statuses[m] == 'NONCARRIER':
+            if patient.has_disease() and self.member_statuses[m] == 'NONCARRIER' and patient.is_child():
                 count += 1
         return count
 
@@ -593,7 +612,7 @@ class Family(object):
         count = 0
         for m in self.members:
             patient = self.members[m]
-            if not patient.has_disease() and self.member_statuses[m] == 'NONCARRIER':
+            if not patient.has_disease() and self.member_statuses[m] == 'NONCARRIER' and patient.is_child():
                 count += 1
         return count
 
@@ -711,6 +730,8 @@ class Family(object):
             raise Exception("Variants uninitialized!")
         if not self.affected_family_count:
             return None
+        if self.affected_family_count - self.affected_missing_count == 0:
+            return None
         return round(self.affected_carriers_count / (self.affected_family_count - self.affected_missing_count), 2)
 
     # Determine the fraction of family members that are unaffected by disease that are carriers of the compound het
@@ -720,6 +741,8 @@ class Family(object):
         if not self.initialized:
             raise Exception("Variants uninitialized!")
         if not self.unaffected_family_count:
+            return None
+        if self.unaffected_family_count - self.unaffected_missing_count == 0:
             return None
         return round(self.unaffected_carriers_count / (self.unaffected_family_count - self.unaffected_missing_count), 2)
 
@@ -731,6 +754,8 @@ class Family(object):
             raise Exception("Variants uninitialized!")
         if not self.affected_family_count:
             return None
+        if self.affected_family_count - self.affected_uncertain_count == 0:
+            return None
         return round(self.affected_carriers_count / (self.affected_family_count - self.affected_uncertain_count), 2)
 
     # Determine the fraction of family members that are unaffected by disease that are carriers of the compound het
@@ -740,6 +765,8 @@ class Family(object):
         if not self.initialized:
             raise Exception("Variants uninitialized!")
         if not self.unaffected_family_count:
+            return None
+        if self.unaffected_family_count - self.unaffected_uncertain_count == 0:
             return None
         return round(self.unaffected_carriers_count / (self.unaffected_family_count - self.unaffected_uncertain_count), 2)
 
